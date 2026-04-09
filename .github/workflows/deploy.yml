@@ -15,6 +15,13 @@ jobs:
       REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
       REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
       REMOTE_USER: ${{ secrets.REMOTE_USER }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+      SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}
+      SCOPES: ${{ secrets.SCOPES }}
+      SHOPIFY_APP_URL: ${{ secrets.SHOPIFY_APP_URL }}
+      SHOP_CUSTOM_DOMAIN: ${{ secrets.SHOP_CUSTOM_DOMAIN }}
+      SHOPPABLE_VIDEO: ${{ secrets.SHOPPABLE_VIDEO }}
 
     steps:
       - name: Checkout repository
@@ -36,6 +43,26 @@ jobs:
           test -n "$REMOTE_USER" || { echo "REMOTE_USER secret is missing"; exit 1; }
           test -n "$REMOTE_PATH" || { echo "REMOTE_PATH secret is missing"; exit 1; }
           test -n "${REMOTE_PORT:-22}" || { echo "REMOTE_PORT secret is invalid"; exit 1; }
+          test -n "$DATABASE_URL" || { echo "DATABASE_URL secret is missing"; exit 1; }
+          test -n "$SHOPIFY_API_KEY" || { echo "SHOPIFY_API_KEY secret is missing"; exit 1; }
+          test -n "$SHOPIFY_API_SECRET" || { echo "SHOPIFY_API_SECRET secret is missing"; exit 1; }
+          test -n "$SCOPES" || { echo "SCOPES secret is missing"; exit 1; }
+          test -n "$SHOPIFY_APP_URL" || { echo "SHOPIFY_APP_URL secret is missing"; exit 1; }
+
+      - name: Create deployment env file
+        run: |
+          cat > .env <<EOF
+          SHOPIFY_API_KEY=$SHOPIFY_API_KEY
+          SHOPIFY_API_SECRET=$SHOPIFY_API_SECRET
+          SCOPES=$SCOPES
+          SHOPIFY_APP_URL=$SHOPIFY_APP_URL
+          DATABASE_URL=$DATABASE_URL
+          SHOPPABLE_VIDEO=${SHOPPABLE_VIDEO:-3002}
+          EOF
+
+          if [ -n "$SHOP_CUSTOM_DOMAIN" ]; then
+            printf 'SHOP_CUSTOM_DOMAIN=%s\n' "$SHOP_CUSTOM_DOMAIN" >> .env
+          fi
 
       - name: Add remote host to known_hosts
         run: |
@@ -60,7 +87,6 @@ jobs:
             --exclude='.react-router' \
             --exclude='.shopify' \
             --exclude='node_modules' \
-            --exclude='.env' \
             --exclude='.env.*' \
             --exclude='build' \
             --exclude='app.log' \
@@ -74,6 +100,9 @@ jobs:
             set -e
             REMOTE_PATH="$1"
             cd "$REMOTE_PATH"
+            set -a
+            . ./.env
+            set +a
             APP_PORT="${SHOPPABLE_VIDEO:-3002}"
 
             NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"

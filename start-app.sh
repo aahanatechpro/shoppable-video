@@ -11,6 +11,12 @@ APP_LOG="$APP_DIR/app.log"
 
 cd "$APP_DIR"
 
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
 if [ -f .nvmrc ]; then
   NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
