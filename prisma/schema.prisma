@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  session_id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  id                  String    @unique
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              String?   // changed from BigInt — MongoDB doesn't support BigInt
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model Video {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  shop          String
+  title         String
+  redirectLink  String?
+  storageKey    String
+  shopifyFileId String?
+  thumbnailKey  String?         // custom thumbnail image URL
+  status        String          @default("PROCESSING")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  tags          ProductTag[]
+  analytics     VideoAnalytic[]
+}
+
+model ProductTag {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId   String   @db.ObjectId  // which store this tag belongs to
+  shop      String
+  productId String
+  title     String?
+  variantId String?
+  timestamp Float
+  positionX Float
+  positionY Float
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+}
+
+model VideoAnalytic {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  videoId   String   @db.ObjectId
+  shop      String
+  event     String
+  productId String?
+  sessionId String?
+  createdAt DateTime @default(now())
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+}
+
+model Widget {
+  widget_id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  id                  String   @unique @default(cuid())
+  shop                String
+  title               String
+  description         String?
+  buttonText          String?  @default("Shop Now")
+  buttonLink          String?
+  titleEnabled        Boolean  @default(true)
+  descriptionEnabled  Boolean  @default(true)
+  buttonEnabled       Boolean  @default(true)
+  buttonOpenNewTab    Boolean  @default(false)
+  brandSettings       String?
+  hideTaggedProducts  Boolean  @default(false)
+  redirectOnLink      Boolean  @default(false)
+  layout              String   @default("grid")   // "grid" | "slider"
+  gridColumns         Int      @default(3)
+  sliderArrows        Boolean  @default(true)
+  sliderArrowPosition String   @default("side")
+  sliderAuto          Boolean  @default(false)
+  sliderLoop          Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}

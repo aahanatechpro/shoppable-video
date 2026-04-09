@@ -1,0 +1,29 @@
+<div class="isa-root shoppable-video-section" id="shoppable-video-{{ block.id }}"
+  data-widget-id="{{ block.settings.widget_id }}"
+  data-shop="{{ shop.permanent_domain }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="shoppable-video-loading">Loading…</div>
+</div>
+
+{% schema %}
+{
+  "name": "Shoppable Video",
+  "target": "section",
+  "javascript": "shoppable-video.js",
+  "stylesheet": "shoppable-video.css",
+  "class": "shop-video-ecomm",
+  "settings": [
+    {
+      "type": "header",
+      "content": "App Settings"
+    },
+    {
+      "type": "text",
+      "id": "widget_id",
+      "label": "Widget ID",
+      "info": "Copy the Widget ID from your Shoppable Video app → Widgets page"
+    }
+  ]
+}
+{% endschema %}
