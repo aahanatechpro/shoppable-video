@@ -19,18 +19,19 @@ curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
 curl_setopt($ch, CURLOPT_HEADER, true);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $requestMethod);
-curl_setopt($ch, CURLOPT_ENCODING, '');
 
 $headers = [
     'Host: ' . $host,
     'X-Forwarded-Host: ' . $host,
     'X-Forwarded-Proto: ' . $scheme,
     'X-Forwarded-Port: ' . ($https ? '443' : '80'),
+    // Request an uncompressed upstream response so we can forward the body as-is.
+    'Accept-Encoding: identity',
 ];
 if (function_exists('getallheaders')) {
     foreach (getallheaders() as $name => $value) {
         $lowerName = strtolower($name);
-        if (!in_array($lowerName, ['host', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port'], true)) {
+        if (!in_array($lowerName, ['host', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'accept-encoding'], true)) {
             $headers[] = $name . ': ' . $value;
         }
     }
@@ -39,7 +40,7 @@ if (function_exists('getallheaders')) {
         if (substr($name, 0, 5) === 'HTTP_') {
             $headerName = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
             $lowerName = strtolower($headerName);
-            if (!in_array($lowerName, ['host', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port'], true)) {
+            if (!in_array($lowerName, ['host', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'accept-encoding'], true)) {
                 $headers[] = $headerName . ': ' . $value;
             }
         }
@@ -75,9 +76,6 @@ foreach ($headerLines as $line) {
         header($line, false);
     }
 }
-
-// If cURL decoded the response body, make sure the browser does not try to decode it again.
-header('Content-Encoding: identity');
 
 echo $body;
 ?>
