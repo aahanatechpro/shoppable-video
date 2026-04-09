@@ -22,6 +22,7 @@ jobs:
       SHOPIFY_APP_URL: ${{ secrets.SHOPIFY_APP_URL }}
       SHOP_CUSTOM_DOMAIN: ${{ secrets.SHOP_CUSTOM_DOMAIN }}
       SHOPPABLE_VIDEO: ${{ secrets.SHOPPABLE_VIDEO }}
+      APP_ENV: ${{ secrets.APP_ENV }}
 
     steps:
       - name: Checkout repository
@@ -43,15 +44,20 @@ jobs:
           test -n "$REMOTE_USER" || { echo "REMOTE_USER secret is missing"; exit 1; }
           test -n "$REMOTE_PATH" || { echo "REMOTE_PATH secret is missing"; exit 1; }
           test -n "${REMOTE_PORT:-22}" || { echo "REMOTE_PORT secret is invalid"; exit 1; }
-          test -n "$DATABASE_URL" || { echo "DATABASE_URL secret is missing"; exit 1; }
-          test -n "$SHOPIFY_API_KEY" || { echo "SHOPIFY_API_KEY secret is missing"; exit 1; }
-          test -n "$SHOPIFY_API_SECRET" || { echo "SHOPIFY_API_SECRET secret is missing"; exit 1; }
-          test -n "$SCOPES" || { echo "SCOPES secret is missing"; exit 1; }
-          test -n "$SHOPIFY_APP_URL" || { echo "SHOPIFY_APP_URL secret is missing"; exit 1; }
+          if [ -z "$APP_ENV" ]; then
+            test -n "$DATABASE_URL" || { echo "DATABASE_URL secret is missing"; exit 1; }
+            test -n "$SHOPIFY_API_KEY" || { echo "SHOPIFY_API_KEY secret is missing"; exit 1; }
+            test -n "$SHOPIFY_API_SECRET" || { echo "SHOPIFY_API_SECRET secret is missing"; exit 1; }
+            test -n "$SCOPES" || { echo "SCOPES secret is missing"; exit 1; }
+            test -n "$SHOPIFY_APP_URL" || { echo "SHOPIFY_APP_URL secret is missing"; exit 1; }
+          fi
 
       - name: Create deployment env file
         run: |
-          cat > .env <<EOF
+          if [ -n "$APP_ENV" ]; then
+            printf '%s\n' "$APP_ENV" > .env
+          else
+            cat > .env <<EOF
           SHOPIFY_API_KEY=$SHOPIFY_API_KEY
           SHOPIFY_API_SECRET=$SHOPIFY_API_SECRET
           SCOPES=$SCOPES
@@ -60,8 +66,13 @@ jobs:
           SHOPPABLE_VIDEO=${SHOPPABLE_VIDEO:-3002}
           EOF
 
-          if [ -n "$SHOP_CUSTOM_DOMAIN" ]; then
-            printf 'SHOP_CUSTOM_DOMAIN=%s\n' "$SHOP_CUSTOM_DOMAIN" >> .env
+            if [ -n "$SHOP_CUSTOM_DOMAIN" ]; then
+              printf 'SHOP_CUSTOM_DOMAIN=%s\n' "$SHOP_CUSTOM_DOMAIN" >> .env
+            fi
+          fi
+
+          if ! grep -q '^SHOPPABLE_VIDEO=' .env; then
+            printf 'SHOPPABLE_VIDEO=%s\n' "${SHOPPABLE_VIDEO:-3002}" >> .env
           fi
 
       - name: Add remote host to known_hosts

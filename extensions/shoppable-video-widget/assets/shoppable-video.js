@@ -2,7 +2,7 @@
   "use strict";
 
   // ── Update this URL when you deploy ───────────────────────────────────────
-  var APP_URL = "https://currencies-cook-characters-bloom.trycloudflare.com";
+  var APP_URL = "https://phpstack-683830-6336116.cloudwaysapps.com";
 
   document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".shoppable-video-section").forEach(initSection);
