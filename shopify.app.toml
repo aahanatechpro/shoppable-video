@@ -2,7 +2,7 @@
 
 client_id = "03651ad19d39c09f8c9a14007735e0e6"
 name = "Shoppable Video"
-application_url = "https://example.com"
+application_url = "https://phpstack-683830-6336116.cloudwaysapps.com"
 embedded = true
 
 [build]
@@ -24,7 +24,7 @@ api_version = "2026-07"
 scopes = "read_products,write_products,read_content,write_content,read_orders,write_files,read_themes,write_themes"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://phpstack-683830-6336116.cloudwaysapps.com/api/auth" ]
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"
