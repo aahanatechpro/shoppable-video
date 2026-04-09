@@ -65,7 +65,7 @@ jobs:
             --exclude='build' \
             --exclude='app.log' \
             --exclude='deploy.log' \
-            --exclude='ig-feed.pid' \
+            --exclude='shoppable-video.pid' \
             ./ "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
 
       - name: Install, setup, build, and restart on remote server
@@ -74,6 +74,7 @@ jobs:
             set -e
             REMOTE_PATH="$1"
             cd "$REMOTE_PATH"
+            APP_PORT="${SHOPPABLE_VIDEO:-3002}"
 
             NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
             export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
@@ -95,13 +96,13 @@ jobs:
             npm prune --omit=dev
             bash ./start-app.sh
             for i in {1..10}; do
-              if curl --silent --show-error --output /dev/null http://127.0.0.1:3001/; then
-                echo "IG Feed app is responding on port 3001"
+              if curl --silent --show-error --output /dev/null "http://127.0.0.1:${APP_PORT}/"; then
+                echo "Shoppable Video app is responding on port ${APP_PORT}"
                 exit 0
               fi
               sleep 3
             done
-            echo "IG Feed app did not respond on port 3001"
+            echo "Shoppable Video app did not respond on port ${APP_PORT}"
             tail -n 80 app.log || true
             exit 1
           EOF

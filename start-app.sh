@@ -11,14 +11,17 @@ APP_LOG="$APP_DIR/app.log"
 
 cd "$APP_DIR"
 
-NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-if [ -s "$NVM_DIR/nvm.sh" ]; then
-  . "$NVM_DIR/nvm.sh"
-  nvm use "$NODE_VERSION"
+if [ -f .nvmrc ]; then
+  NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    . "$NVM_DIR/nvm.sh"
+    nvm use "$NODE_VERSION"
+  else
+    echo "nvm was not found at $NVM_DIR/nvm.sh, using system Node"
+  fi
 else
-  echo "nvm was not found at $NVM_DIR/nvm.sh"
-  exit 1
+  echo ".nvmrc not found, using system Node"
 fi
 
 # Stop only this app's previous process/port so other Cloudways apps are not affected.
