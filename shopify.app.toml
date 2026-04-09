@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "03651ad19d39c09f8c9a14007735e0e6"
-name = "shoppable-video-gallery"
+name = "Shoppable Video"
 application_url = "https://example.com"
 embedded = true
 
@@ -21,7 +21,7 @@ api_version = "2026-07"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_metaobject_definitions,write_metaobjects,write_products"
+scopes = "read_products,write_products,read_content,write_content,read_orders,write_files,read_themes,write_themes"
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]

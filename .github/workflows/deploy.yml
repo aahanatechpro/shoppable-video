@@ -1,0 +1,107 @@
+name: Deploy to Cloudways
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Cloudways Server
+    runs-on: ubuntu-latest
+    env:
+      REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+      REMOTE_PORT: ${{ secrets.REMOTE_PORT }}
+      REMOTE_PATH: ${{ secrets.REMOTE_PATH }}
+      REMOTE_USER: ${{ secrets.REMOTE_USER }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Validate deployment secrets
+        run: |
+          test -n "$REMOTE_HOST" || { echo "REMOTE_HOST secret is missing"; exit 1; }
+          test -n "$REMOTE_USER" || { echo "REMOTE_USER secret is missing"; exit 1; }
+          test -n "$REMOTE_PATH" || { echo "REMOTE_PATH secret is missing"; exit 1; }
+          test -n "${REMOTE_PORT:-22}" || { echo "REMOTE_PORT secret is invalid"; exit 1; }
+
+      - name: Add remote host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${REMOTE_PORT:-22}" "$REMOTE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Sync app to remote server
+        run: |
+          rsync -rlz --delete \
+            -e "ssh -p ${REMOTE_PORT:-22}" \
+            --no-perms \
+            --no-owner \
+            --no-group \
+            --no-times \
+            --omit-dir-times \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.cache' \
+            --exclude='.chrome-tmp' \
+            --exclude='.cursor' \
+            --exclude='.gemini' \
+            --exclude='.react-router' \
+            --exclude='.shopify' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='build' \
+            --exclude='app.log' \
+            --exclude='deploy.log' \
+            --exclude='ig-feed.pid' \
+            ./ "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
+
+      - name: Install, setup, build, and restart on remote server
+        run: |
+          ssh -p "${REMOTE_PORT:-22}" "$REMOTE_USER@$REMOTE_HOST" 'bash -s' -- "$REMOTE_PATH" << 'EOF'
+            set -e
+            REMOTE_PATH="$1"
+            cd "$REMOTE_PATH"
+
+            NODE_VERSION="$(tr -d '\r\n' < .nvmrc)"
+            export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+            if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+              echo "nvm was not found at $NVM_DIR/nvm.sh, installing nvm..."
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+            fi
+
+            . "$NVM_DIR/nvm.sh"
+            nvm install "$NODE_VERSION"
+            nvm use "$NODE_VERSION"
+
+            node --version
+            npm --version
+
+            npm ci
+            npm run setup
+            npm run build
+            npm prune --omit=dev
+            bash ./start-app.sh
+            for i in {1..10}; do
+              if curl --silent --show-error --output /dev/null http://127.0.0.1:3001/; then
+                echo "IG Feed app is responding on port 3001"
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "IG Feed app did not respond on port 3001"
+            tail -n 80 app.log || true
+            exit 1
+          EOF
