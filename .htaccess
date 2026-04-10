@@ -1,14 +1,20 @@
-DirectoryIndex index.php
+DirectoryIndex disabled
+RewriteEngine On
 
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
+# Serve the PHP proxy entrypoint for the root path only.
+RewriteRule ^$ index.php [L]
 
-  # Let Apache serve real files and directories directly.
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
+# Proxy Shopify app routes and app APIs directly to the Node app.
+# Your production Node app runs on port 3002 via SHOPPABLE_VIDEO.
+RewriteRule ^((?:app|api|auth|webhooks)(?:\.data|(?:/.*)?)|__manifest)$ http://127.0.0.1:3002/$1 [P,L]
 
-  # Send everything else through the PHP proxy/front controller.
-  RewriteRule ^ index.php [L,QSA]
-</IfModule>
+# Allow direct access to existing files and directories.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Rewrite static files to public/ when they don't exist at the project root.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
+RewriteRule ^(.+)$ public/$1 [L]
