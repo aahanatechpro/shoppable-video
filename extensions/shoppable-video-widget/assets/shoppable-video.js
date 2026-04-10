@@ -10,6 +10,29 @@
     scope.querySelectorAll(".shoppable-video-section").forEach(initSection);
   }
 
+  function setDebug(container, message, details) {
+    var text = "[ShoppableVideo] " + message + (details ? " | " + details : "");
+    container.setAttribute("data-widget-debug", text);
+
+    var debugNode = container.querySelector(".shoppable-video-debug");
+    if (!debugNode) {
+      debugNode = document.createElement("pre");
+      debugNode.className = "shoppable-video-debug";
+      debugNode.style.whiteSpace = "pre-wrap";
+      debugNode.style.fontSize = "12px";
+      debugNode.style.lineHeight = "1.5";
+      debugNode.style.padding = "10px 12px";
+      debugNode.style.margin = "10px 0";
+      debugNode.style.borderRadius = "8px";
+      debugNode.style.background = "#fff4f4";
+      debugNode.style.color = "#8a1c1c";
+      debugNode.style.border = "1px solid #f1b6b6";
+      container.appendChild(debugNode);
+    }
+
+    debugNode.textContent = text;
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       bootSections(document);
@@ -27,34 +50,37 @@
     var shop     = (container.getAttribute("data-shop") || "").trim();
 
     if (!widgetId || !shop) {
+      setDebug(container, "Missing widget settings", "widgetId=" + widgetId + ", shop=" + shop);
       container.innerHTML = '<p class="shoppable-video-error">Please set the Widget ID in section settings.</p>';
       return;
     }
 
-    container.setAttribute("data-widget-debug", "initializing");
+    setDebug(container, "Initializing", "widgetId=" + widgetId + ", shop=" + shop);
 
     fetch(APP_URL + "/api/widget?widgetId=" + encodeURIComponent(widgetId) + "&shop=" + encodeURIComponent(shop))
       .then(function (r) {
+        setDebug(container, "Widget API response", "status=" + r.status);
         if (!r.ok) throw new Error("Widget API failed with status " + r.status);
         return r.json();
       })
       .then(function (data) {
         if (!data.widget) throw new Error("Widget not found");
-        container.setAttribute("data-widget-debug", "widget-loaded");
+        setDebug(container, "Widget loaded", "title=" + (data.widget.title || "(empty)"));
         return fetch(APP_URL + "/api/storefront/videos?shop=" + encodeURIComponent(shop))
           .then(function (r) {
+            setDebug(container, "Videos API response", "status=" + r.status);
             if (!r.ok) throw new Error("Videos API failed with status " + r.status);
             return r.json();
           })
           .then(function (vData) {
-            container.setAttribute("data-widget-debug", "rendering");
+            setDebug(container, "Rendering widget", "videos=" + ((vData.videos && vData.videos.length) || 0));
             renderWidget(container, data.widget, vData.videos || []);
           });
       })
       .catch(function (err) {
         console.error("[ShoppableVideo] Error:", err);
-        container.setAttribute("data-widget-debug", err && err.message ? err.message : "unknown-error");
-        container.innerHTML = '<p class="shoppable-video-error">Could not load widget.</p>';
+        setDebug(container, "Widget failed", err && err.message ? err.message : "unknown-error");
+        container.innerHTML = '<p class="shoppable-video-error">Could not load widget.</p>' + container.innerHTML;
       });
   }
 
