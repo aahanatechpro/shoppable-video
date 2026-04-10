@@ -23,27 +23,38 @@
     if (containerId && initializedSections[containerId]) return;
     if (containerId) initializedSections[containerId] = true;
 
-    var widgetId = container.getAttribute("data-widget-id");
-    var shop     = container.getAttribute("data-shop");
+    var widgetId = (container.getAttribute("data-widget-id") || "").trim();
+    var shop     = (container.getAttribute("data-shop") || "").trim();
 
     if (!widgetId || !shop) {
       container.innerHTML = '<p class="shoppable-video-error">Please set the Widget ID in section settings.</p>';
       return;
     }
 
+    container.setAttribute("data-widget-debug", "initializing");
+
     fetch(APP_URL + "/api/widget?widgetId=" + encodeURIComponent(widgetId) + "&shop=" + encodeURIComponent(shop))
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Widget API failed with status " + r.status);
+        return r.json();
+      })
       .then(function (data) {
         if (!data.widget) throw new Error("Widget not found");
+        container.setAttribute("data-widget-debug", "widget-loaded");
         return fetch(APP_URL + "/api/storefront/videos?shop=" + encodeURIComponent(shop))
-          .then(function (r) { return r.json(); })
+          .then(function (r) {
+            if (!r.ok) throw new Error("Videos API failed with status " + r.status);
+            return r.json();
+          })
           .then(function (vData) {
+            container.setAttribute("data-widget-debug", "rendering");
             renderWidget(container, data.widget, vData.videos || []);
           });
       })
       .catch(function (err) {
         console.error("[ShoppableVideo] Error:", err);
-        container.innerHTML = '<p class="shoppable-video-error">Could not load videos.</p>';
+        container.setAttribute("data-widget-debug", err && err.message ? err.message : "unknown-error");
+        container.innerHTML = '<p class="shoppable-video-error">Could not load widget.</p>';
       });
   }
 
