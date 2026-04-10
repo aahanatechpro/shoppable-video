@@ -3,12 +3,26 @@
 
   // ── Update this URL when you deploy ───────────────────────────────────────
   var APP_URL = "https://phpstack-683830-6336116.cloudwaysapps.com";
+  var initializedSections = {};
 
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".shoppable-video-section").forEach(initSection);
-  });
+  function bootSections(root) {
+    var scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll(".shoppable-video-section").forEach(initSection);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      bootSections(document);
+    });
+  } else {
+    bootSections(document);
+  }
 
   function initSection(container) {
+    var containerId = container.id || container.getAttribute("data-widget-id");
+    if (containerId && initializedSections[containerId]) return;
+    if (containerId) initializedSections[containerId] = true;
+
     var widgetId = container.getAttribute("data-widget-id");
     var shop     = container.getAttribute("data-shop");
 
@@ -32,6 +46,15 @@
         container.innerHTML = '<p class="shoppable-video-error">Could not load videos.</p>';
       });
   }
+
+  document.addEventListener("shopify:section:load", function (event) {
+    var root = event && event.target ? event.target : document;
+    root.querySelectorAll(".shoppable-video-section").forEach(function (container) {
+      var containerId = container.id || container.getAttribute("data-widget-id");
+      if (containerId) delete initializedSections[containerId];
+      initSection(container);
+    });
+  });
 
   function renderWidget(container, widget, videos) {
     container.innerHTML = "";
